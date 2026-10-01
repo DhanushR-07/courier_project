@@ -22,13 +22,13 @@ const deliveryIcon = new L.Icon({
 });
 
 export const LiveTrackingPage: React.FC = () => {
-  const { id } = useParams();
+  const { trackingId } = useParams<{ trackingId: string }>();
   const navigate = useNavigate();
 
   const { data: shipment, isLoading } = useQuery({
-    queryKey: ['shipment', id],
-    queryFn: () => mockApi.getShipmentById(id!),
-    enabled: !!id,
+    queryKey: ['shipment', 'tracking', trackingId],
+    queryFn: () => mockApi.getShipmentByTrackingId(trackingId!),
+    enabled: !!trackingId,
   });
 
   if (isLoading) return <div className="h-screen bg-gray-950 flex items-center justify-center text-white">Loading map...</div>;
