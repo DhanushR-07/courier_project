@@ -1,19 +1,85 @@
 import React, { useState } from 'react';
-import { Check, X, AlertCircle } from 'lucide-react';
-import clsx from 'clsx';
+import { Check, X, ArrowLeft, Loader2 } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { mockApi } from '@/services/mockApi';
+import { toast } from 'react-hot-toast';
 
 export default function DeliveryStatusUpdate() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   const [selectedStatus, setSelectedStatus] = useState<'DELIVERED' | 'NOT_DELIVERED' | null>(null);
   const [otp, setOtp] = useState('');
   const [attempts, setAttempts] = useState(3);
   const [reason, setReason] = useState('');
-  
+  const [notes, setNotes] = useState('');
+
+  const { data: shipment, isLoading } = useQuery({
+    queryKey: ['shipment', id],
+    queryFn: () => mockApi.getShipmentById(id!),
+    enabled: !!id,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ status, otpCode }: { status: 'DELIVERED' | 'FAILED_ATTEMPT', otpCode?: string }) => {
+      if (status === 'DELIVERED') {
+        const isValid = await mockApi.verifyOtp(id!, otpCode!);
+        if (!isValid) throw new Error('Invalid OTP');
+      }
+      return mockApi.updateShipmentStatus(id!, status, notes ? `${reason}: ${notes}` : reason);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deliveryShipments'] });
+      queryClient.invalidateQueries({ queryKey: ['shipment', id] });
+      toast.success('Status updated successfully');
+      navigate('/delivery');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to update status');
+      if (selectedStatus === 'DELIVERED') {
+        setAttempts(a => Math.max(0, a - 1));
+      }
+    }
+  });
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-gray-950 flex items-center justify-center text-white"><Loader2 className="w-8 h-8 animate-spin text-orange-500" /></div>;
+  }
+
+  if (!shipment) {
+    return <div className="min-h-screen bg-gray-950 text-white p-4">Shipment not found.</div>;
+  }
+
+  const handleVerifyDelivery = () => {
+    if (otp.length !== 6) {
+      toast.error('Please enter a 6-digit OTP');
+      return;
+    }
+    if (attempts <= 0) {
+      toast.error('No attempts left. Please mark as failed.');
+      return;
+    }
+    updateMutation.mutate({ status: 'DELIVERED', otpCode: otp });
+  };
+
+  const handleFailDelivery = () => {
+    if (!reason) {
+      toast.error('Please select a reason');
+      return;
+    }
+    updateMutation.mutate({ status: 'FAILED_ATTEMPT' });
+  };
+
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 pt-12">
       <div className="mb-8">
-        <button className="text-gray-400 mb-4 text-sm font-medium">← Back</button>
+        <button onClick={() => navigate(-1)} className="flex items-center text-gray-400 mb-4 hover:text-white transition-colors text-sm font-medium">
+          <ArrowLeft className="w-4 h-4 mr-1" /> Back
+        </button>
         <h1 className="text-2xl font-bold">Update Status</h1>
-        <p className="text-gray-400 text-sm mt-1">TRK-990212 • Sarah Connor</p>
+        <p className="text-gray-400 text-sm mt-1">{shipment.trackingId} • {shipment.receiverName}</p>
       </div>
 
       {!selectedStatus ? (
@@ -57,8 +123,12 @@ export default function DeliveryStatusUpdate() {
             <button className="text-orange-500 font-medium">Resend OTP</button>
           </div>
 
-          <button className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl transition-colors text-lg shadow-lg shadow-green-500/20 disabled:opacity-50">
-            Verify & Complete Delivery
+          <button 
+            onClick={handleVerifyDelivery}
+            disabled={updateMutation.isPending || attempts <= 0}
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl transition-colors text-lg shadow-lg shadow-green-500/20 disabled:opacity-50 flex justify-center items-center"
+          >
+            {updateMutation.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : "Verify & Complete Delivery"}
           </button>
         </div>
       ) : (
@@ -80,13 +150,19 @@ export default function DeliveryStatusUpdate() {
             </select>
 
             <textarea 
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
               placeholder="Add optional notes..."
               className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-red-500 min-h-[120px]"
             />
           </div>
 
-          <button className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-xl transition-colors text-lg shadow-lg shadow-red-500/20">
-            Submit Failure Report
+          <button 
+            onClick={handleFailDelivery}
+            disabled={updateMutation.isPending}
+            className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-xl transition-colors text-lg shadow-lg shadow-red-500/20 flex justify-center items-center"
+          >
+            {updateMutation.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : "Submit Failure Report"}
           </button>
         </div>
       )}
