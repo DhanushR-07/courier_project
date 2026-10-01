@@ -45,6 +45,21 @@ export default function DeliveryStatusUpdate() {
     }
   });
 
+  const handleSelectDelivered = () => {
+    setSelectedStatus('DELIVERED');
+    // Simulate automatic sending of OTP to the customer
+    toast.success('OTP sent automatically to the customer!', {
+      icon: '📲',
+      duration: 4000,
+    });
+  };
+
+  const handleResendOtp = () => {
+    toast.success('OTP resent to the customer!', {
+      icon: '🔄',
+    });
+  };
+
   if (isLoading) {
     return <div className="min-h-screen bg-gray-950 flex items-center justify-center text-white"><Loader2 className="w-8 h-8 animate-spin text-orange-500" /></div>;
   }
@@ -86,7 +101,7 @@ export default function DeliveryStatusUpdate() {
       {!selectedStatus ? (
         <div className="space-y-4">
           <button 
-            onClick={() => setSelectedStatus('DELIVERED')}
+            onClick={handleSelectDelivered}
             className="w-full bg-green-500/10 border-2 border-green-500/30 hover:border-green-500 p-6 rounded-2xl flex flex-col items-center justify-center gap-3 transition-colors group"
           >
             <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -115,6 +130,7 @@ export default function DeliveryStatusUpdate() {
             isLoading={updateMutation.isPending}
             error={attempts < 3 && attempts > 0 ? 'Invalid OTP. Please try again.' : ''}
             attemptsLeft={attempts}
+            onResend={handleResendOtp}
             onComplete={(code) => {
               if (attempts <= 0) {
                 toast.error('No attempts left. Please mark as failed.');
