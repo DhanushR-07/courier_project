@@ -20,6 +20,8 @@ const MyShipments = lazyImport(import('@/features/customer/MyShipments'));
 const ShipmentDetail = lazyImport(import('@/features/customer/ShipmentDetail'));
 const LiveTrackingPage = lazyImport(import('@/features/customer/LiveTrackingPage'));
 const NotificationHistory = lazyImport(import('@/features/customer/NotificationHistory'));
+const BookCourier = lazyImport(import('@/features/customer/BookCourier'));
+const PaymentCheckout = lazyImport(import('@/features/customer/PaymentCheckout'));
 
 // Admin Pages
 const AdminDashboard = lazyImport(import('@/features/admin/AdminDashboard'));
@@ -76,6 +78,8 @@ export const router = createBrowserRouter([
           { index: true, element: <Suspense fallback={<LoadingFallback />}><CustomerDashboard /></Suspense> },
           { path: 'shipments', element: <Suspense fallback={<LoadingFallback />}><MyShipments /></Suspense> },
           { path: 'shipments/:id', element: <Suspense fallback={<LoadingFallback />}><ShipmentDetail /></Suspense> },
+          { path: 'book', element: <Suspense fallback={<LoadingFallback />}><BookCourier /></Suspense> },
+          { path: 'payment', element: <Suspense fallback={<LoadingFallback />}><PaymentCheckout /></Suspense> },
           { path: 'tracking/:trackingId', element: <Suspense fallback={<LoadingFallback />}><LiveTrackingPage /></Suspense> },
           { path: 'notifications', element: <Suspense fallback={<LoadingFallback />}><NotificationHistory /></Suspense> },
           { path: 'profile', element: <Suspense fallback={<LoadingFallback />}><ProfilePage /></Suspense> },

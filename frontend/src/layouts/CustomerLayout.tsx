@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, NavLink, Link } from 'react-router-dom';
-import { LayoutDashboard, Package, MapPin, Bell, User as UserIcon, Moon, Sun } from 'lucide-react';
+import { LayoutDashboard, Package, MapPin, Bell, User as UserIcon, Moon, Sun, PlusCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -10,6 +10,7 @@ export const CustomerLayout: React.FC = () => {
   const navItems = [
     { to: '/customer', icon: LayoutDashboard, label: 'Home', end: true },
     { to: '/customer/shipments', icon: Package, label: 'Shipments' },
+    { to: '/customer/book', icon: PlusCircle, label: 'Book' },
     { to: '/customer/track', icon: MapPin, label: 'Track' },
     { to: '/customer/notifications', icon: Bell, label: 'Notifications' },
     { to: '/customer/profile', icon: UserIcon, label: 'Profile' },
