@@ -43,6 +43,7 @@ const BranchTracking = lazyImport(import('@/features/branch/BranchTracking'));
 // Delivery Partner Pages
 const DeliveryDashboard = lazyImport(import('@/features/delivery/DeliveryDashboard'));
 const DeliveryStatusUpdate = lazyImport(import('@/features/delivery/DeliveryStatusUpdate'));
+const DeliveryMap = lazyImport(import('@/features/delivery/DeliveryMap'));
 
 const LoadingFallback = () => (
   <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -140,6 +141,7 @@ export const router = createBrowserRouter([
         element: <Suspense fallback={<LoadingFallback />}><DeliveryLayout /></Suspense>,
         children: [
           { index: true, element: <Suspense fallback={<LoadingFallback />}><DeliveryDashboard /></Suspense> },
+          { path: 'map', element: <Suspense fallback={<LoadingFallback />}><DeliveryMap /></Suspense> },
           { path: 'shipments/:id', element: <Suspense fallback={<LoadingFallback />}><ShipmentDetail /></Suspense> },
           { path: 'update/:id', element: <Suspense fallback={<LoadingFallback />}><DeliveryStatusUpdate /></Suspense> },
           { path: 'notifications', element: <Suspense fallback={<LoadingFallback />}><NotificationHistory /></Suspense> },
