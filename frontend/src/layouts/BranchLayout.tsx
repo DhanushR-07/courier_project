@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, Link } from 'react-router-dom';
-import { LayoutDashboard, Package, MapPin, Bell, Menu, X, Package as PackageIcon, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, MapPin, Bell, Menu, X, Package as PackageIcon, LogOut, User as UserIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -13,6 +13,7 @@ export const BranchLayout: React.FC = () => {
     { to: '/branch/shipments', icon: Package, label: 'Shipments' },
     { to: '/branch/tracking', icon: MapPin, label: 'Tracking' },
     { to: '/branch/notifications', icon: Bell, label: 'Notifications' },
+    { to: '/branch/profile', icon: UserIcon, label: 'Profile' },
   ];
 
   const closeMenu = () => setIsMobileMenuOpen(false);
@@ -87,7 +88,7 @@ export const BranchLayout: React.FC = () => {
               <Bell className="w-5 h-5" />
             </Link>
             
-            <div className="flex items-center space-x-2 border-l border-gray-800 pl-4">
+            <Link to="/branch/profile" className="flex items-center space-x-2 border-l border-gray-800 pl-4 hover:opacity-80 transition-opacity">
               <div className="hidden sm:block text-right">
                 <p className="text-sm font-medium text-white">{user?.name}</p>
                 <p className="text-xs text-gray-500">Branch Manager</p>
@@ -95,7 +96,7 @@ export const BranchLayout: React.FC = () => {
               <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-500 font-bold">
                 {user?.name?.charAt(0) || 'B'}
               </div>
-            </div>
+            </Link>
           </div>
         </header>
 

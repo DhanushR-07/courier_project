@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, Link } from 'react-router-dom';
-import { LayoutDashboard, Package, Users, Building2, MapPin, ClipboardList, Bell, Search, Menu, X, Package as PackageIcon, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, Users, Building2, MapPin, ClipboardList, Bell, Search, Menu, X, Package as PackageIcon, LogOut, User as UserIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -16,6 +16,7 @@ export const AdminLayout: React.FC = () => {
     { to: '/admin/tracking', icon: MapPin, label: 'Tracking' },
     { to: '/admin/audit', icon: ClipboardList, label: 'Audit Log' },
     { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
+    { to: '/admin/profile', icon: UserIcon, label: 'Profile' },
   ];
 
   const closeMenu = () => setIsMobileMenuOpen(false);
@@ -100,7 +101,7 @@ export const AdminLayout: React.FC = () => {
               <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full"></span>
             </Link>
             
-            <div className="flex items-center space-x-2 border-l border-gray-800 pl-4">
+            <Link to="/admin/profile" className="flex items-center space-x-2 border-l border-gray-800 pl-4 hover:opacity-80 transition-opacity">
               <div className="hidden sm:block text-right">
                 <p className="text-sm font-medium text-white">{user?.name}</p>
                 <p className="text-xs text-gray-500">Administrator</p>
@@ -108,7 +109,7 @@ export const AdminLayout: React.FC = () => {
               <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-500 font-bold">
                 {user?.name?.charAt(0) || 'A'}
               </div>
-            </div>
+            </Link>
           </div>
         </header>
 
