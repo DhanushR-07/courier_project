@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mockApi } from '@/services/mockApi';
 import { toast } from 'react-hot-toast';
+import { OtpInput } from '@/components/shared/OtpInput';
 
 export default function DeliveryStatusUpdate() {
   const { id } = useParams<{ id: string }>();
@@ -109,27 +110,23 @@ export default function DeliveryStatusUpdate() {
           <h2 className="text-xl font-bold mb-2">Verify Delivery OTP</h2>
           <p className="text-gray-400 text-sm mb-6">Ask the customer for the 6-digit OTP sent to their mobile number.</p>
           
-          <input 
-            type="text" 
-            maxLength={6}
-            value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-            placeholder="000000"
-            className="w-full bg-gray-950 border-2 border-gray-800 text-center text-3xl tracking-[1em] font-mono py-4 rounded-xl text-white focus:border-green-500 focus:outline-none mb-4"
+          <OtpInput 
+            length={6}
+            isLoading={updateMutation.isPending}
+            error={attempts < 3 && attempts > 0 ? 'Invalid OTP. Please try again.' : ''}
+            attemptsLeft={attempts}
+            onComplete={(code) => {
+              if (attempts <= 0) {
+                toast.error('No attempts left. Please mark as failed.');
+                return;
+              }
+              updateMutation.mutate({ status: 'DELIVERED', otpCode: code });
+            }}
           />
           
-          <div className="flex justify-between items-center mb-8 text-sm">
-            <span className="text-gray-400">Attempts left: <span className="text-white font-bold">{attempts}</span></span>
-            <button className="text-orange-500 font-medium">Resend OTP</button>
-          </div>
-
-          <button 
-            onClick={handleVerifyDelivery}
-            disabled={updateMutation.isPending || attempts <= 0}
-            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl transition-colors text-lg shadow-lg shadow-green-500/20 disabled:opacity-50 flex justify-center items-center"
-          >
-            {updateMutation.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : "Verify & Complete Delivery"}
-          </button>
+          <p className="text-xs text-gray-600 text-center mt-6">
+            Demo Hint: The OTP is {shipment.deliveryOtp || '123456'}
+          </p>
         </div>
       ) : (
         <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl animate-in slide-in-from-bottom-4">
