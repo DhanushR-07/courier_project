@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mockApi } from '@/services/mockApi';
-import { Search, Download, MoreVertical, X } from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
+import { Search, Download, X } from 'lucide-react';
 import { Shipment, ShipmentStatus } from '@/types';
 import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 
 const StatusBadge = ({ status }: { status: string }) => {
   const colors: Record<string, string> = {
@@ -24,19 +26,58 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 export default function BranchShipments() {
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  
+  const [modalType, setModalType] = useState<'STATUS' | 'PARTNER' | null>(null);
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
-  const [modalType, setModalType] = useState<'STATUS' | 'PARTNER' | 'TIMELINE' | null>(null);
-  
+
+  // Form states
+  const [newStatus, setNewStatus] = useState<ShipmentStatus>('OUT_FOR_DELIVERY');
+  const [statusNote, setStatusNote] = useState('');
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
+
   const { data: shipments, isLoading } = useQuery({
-    queryKey: ['branch-shipments'],
-    queryFn: () => mockApi.getShipments({ branchId: 'branch-1' }),
+    queryKey: ['branchShipments', user?.branchId],
+    queryFn: () => mockApi.getShipmentsForBranch(user?.branchId || ''),
+    enabled: !!user?.branchId
+  });
+
+  const { data: users } = useQuery({
+    queryKey: ['users'],
+    queryFn: mockApi.getUsers
+  });
+
+  const deliveryPartners = users?.filter(u => u.role === 'DELIVERY_PARTNER') || [];
+
+  const updateStatusMutation = useMutation({
+    mutationFn: () => mockApi.updateShipmentStatus(selectedShipment!.id, newStatus, statusNote),
+    onSuccess: () => {
+      toast.success('Status updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['branchShipments'] });
+      setModalType(null);
+    },
+    onError: () => toast.error('Failed to update status')
+  });
+
+  const assignPartnerMutation = useMutation({
+    mutationFn: () => mockApi.assignPartner(selectedShipment!.id, selectedPartnerId),
+    onSuccess: () => {
+      toast.success('Partner assigned successfully');
+      queryClient.invalidateQueries({ queryKey: ['branchShipments'] });
+      setModalType(null);
+    },
+    onError: () => toast.error('Failed to assign partner')
+  });
+
+  const filtered = shipments?.filter((s: Shipment) => {
+    if (statusFilter !== 'ALL' && s.status !== statusFilter) return false;
+    if (search && !s.trackingId.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
   });
 
   const handleExportCsv = () => {
-    // Generate simple CSV
     if (!shipments) return;
     const header = "Tracking ID,Package,Receiver,Status,Partner,Date\n";
     const csv = shipments.map((s: Shipment) => `${s.trackingId},${s.packageName},${s.receiverName},${s.status},${s.assignedPartnerName || 'Unassigned'},${s.bookingDate}`).join("\n");
@@ -45,14 +86,23 @@ export default function BranchShipments() {
     const a = document.createElement('a');
     a.href = url;
     a.download = 'shipments.csv';
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
   };
 
-  const filtered = shipments?.filter((s: Shipment) => {
-    if (statusFilter !== 'ALL' && s.status !== statusFilter) return false;
-    if (search && !s.trackingId.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  const openStatusModal = (shipment: Shipment) => {
+    setSelectedShipment(shipment);
+    setNewStatus(shipment.status);
+    setStatusNote('');
+    setModalType('STATUS');
+  };
+
+  const openPartnerModal = (shipment: Shipment) => {
+    setSelectedShipment(shipment);
+    setSelectedPartnerId(shipment.assignedPartnerId || '');
+    setModalType('PARTNER');
+  };
 
   return (
     <div className="p-4 md:p-6 bg-gray-950 min-h-screen text-gray-200">
@@ -92,7 +142,7 @@ export default function BranchShipments() {
         </select>
       </div>
 
-      {/* Table (desktop) / Cards (mobile) */}
+      {/* Table */}
       <div className="bg-gray-800 rounded-2xl border border-gray-700/50 overflow-hidden">
         {isLoading ? (
           <div className="p-8 text-center text-gray-400">Loading shipments...</div>
@@ -122,13 +172,13 @@ export default function BranchShipments() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button 
-                          onClick={() => { setSelectedShipment(shipment); setModalType('STATUS'); }}
+                          onClick={() => openStatusModal(shipment)}
                           className="text-sm bg-gray-900 hover:bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300"
                         >
                           Status
                         </button>
                         <button 
-                          onClick={() => { setSelectedShipment(shipment); setModalType('PARTNER'); }}
+                          onClick={() => openPartnerModal(shipment)}
                           className="text-sm bg-gray-900 hover:bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300"
                         >
                           Assign
@@ -151,13 +201,13 @@ export default function BranchShipments() {
       {/* Modals */}
       {modalType && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-800 rounded-2xl w-full max-w-md border border-gray-700 overflow-hidden">
+          <div className="bg-gray-800 rounded-2xl w-full max-w-md border border-gray-700 overflow-hidden shadow-2xl">
             <div className="flex justify-between items-center p-4 border-b border-gray-700">
               <h3 className="text-lg font-semibold text-white">
                 {modalType === 'STATUS' && 'Update Status'}
                 {modalType === 'PARTNER' && 'Assign Partner'}
               </h3>
-              <button onClick={() => setModalType(null)} className="text-gray-400 hover:text-white">
+              <button onClick={() => setModalType(null)} className="text-gray-400 hover:text-white transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -166,35 +216,58 @@ export default function BranchShipments() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">New Status</label>
-                    <select className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500">
-                      <option>OUT_FOR_DELIVERY</option>
-                      <option>AT_BRANCH</option>
+                    <select 
+                      value={newStatus}
+                      onChange={(e) => setNewStatus(e.target.value as ShipmentStatus)}
+                      className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500"
+                    >
+                      <option value="BOOKED">BOOKED</option>
+                      <option value="AT_BRANCH">AT_BRANCH</option>
+                      <option value="OUT_FOR_DELIVERY">OUT_FOR_DELIVERY</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">Note (Optional)</label>
                     <textarea 
+                      value={statusNote}
+                      onChange={e => setStatusNote(e.target.value)}
                       className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500 min-h-[100px]"
                       placeholder="Add a note..."
                     />
                   </div>
-                  <button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors">
-                    Update Status
+                  <button 
+                    onClick={() => updateStatusMutation.mutate()}
+                    disabled={updateStatusMutation.isPending}
+                    className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-colors"
+                  >
+                    {updateStatusMutation.isPending ? 'Updating...' : 'Update Status'}
                   </button>
                 </div>
               )}
               {modalType === 'PARTNER' && (
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    {['John Doe', 'Jane Smith', 'Mike Johnson'].map(partner => (
-                      <label key={partner} className="flex items-center gap-3 p-3 rounded-xl border border-gray-700 hover:bg-gray-700/50 cursor-pointer">
-                        <input type="radio" name="partner" className="text-orange-500 focus:ring-orange-500 bg-gray-900 border-gray-600" />
-                        <span className="text-white">{partner}</span>
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                    {deliveryPartners.length > 0 ? deliveryPartners.map(partner => (
+                      <label key={partner.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-700 hover:bg-gray-700/50 cursor-pointer">
+                        <input 
+                          type="radio" 
+                          name="partner" 
+                          checked={selectedPartnerId === partner.id}
+                          onChange={() => setSelectedPartnerId(partner.id)}
+                          className="text-orange-500 focus:ring-orange-500 bg-gray-900 border-gray-600 w-4 h-4" 
+                        />
+                        <span className="text-white">{partner.name}</span>
                       </label>
-                    ))}
+                    )) : (
+                      <div className="text-gray-400 text-center py-4">No delivery partners found</div>
+                    )}
                   </div>
-                  <button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors mt-4">
-                    Confirm Assignment
+                  <button 
+                    onClick={() => assignPartnerMutation.mutate()}
+                    disabled={assignPartnerMutation.isPending || !selectedPartnerId}
+                    className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-colors mt-4"
+                  >
+                    {assignPartnerMutation.isPending ? 'Assigning...' : 'Confirm Assignment'}
                   </button>
                 </div>
               )}
