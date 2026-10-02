@@ -73,6 +73,23 @@ export const shipmentApi = {
     s.assignedPartnerId = partnerId;
     s.assignedPartnerName = u.name;
     return s;
+  },
+  create: async (shipmentData: any) => {
+    await delay(300);
+    const trackingId = `V${Math.floor(Math.random() * 1000000)}AR${Math.floor(Math.random() * 1000)}`;
+    const newShipment: Shipment = {
+      id: `shipment-${Date.now()}`,
+      trackingId,
+      ...shipmentData,
+      status: 'BOOKED',
+      timeline: [
+        { status: 'BOOKED', timestamp: new Date().toISOString() }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    mockShipments.push(newShipment);
+    return newShipment;
   }
 };
 
@@ -173,6 +190,7 @@ export const auditApi = {
 // Convenience namespace for components that import { mockApi }
 export const mockApi = {
   getShipments: shipmentApi.getAll,
+  createShipment: shipmentApi.create,
   getShipmentById: shipmentApi.getById,
   getShipmentByTrackingId: shipmentApi.getByTrackingId,
   getShipmentsForCustomer: shipmentApi.getForCustomer,

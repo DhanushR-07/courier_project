@@ -49,11 +49,11 @@ export default function PaymentCheckout() {
         estimatedRevenue: amount,
       };
 
-      // Since mockApi doesn't have a createShipment yet, we'll just show success. 
-      // A real app would call mockApi.createShipment(newShipment);
+      // Save to mock database
+      const savedShipment = await mockApi.createShipment(newShipment);
       
       setIsSuccess(true);
-      toast.success('Payment successful & shipment booked!');
+      toast.success(`Payment successful! Tracking ID: ${savedShipment.trackingId}`);
     } catch (err) {
       toast.error('Payment failed. Please try again.');
     } finally {
