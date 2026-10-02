@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { mockApi } from '@/services/mockApi';
+import { useLiveTracking } from '@/hooks/useLiveTracking';
 import { ArrowLeft, Phone, User as UserIcon } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -21,9 +22,18 @@ const deliveryIcon = new L.Icon({
   iconAnchor: [16, 16],
 });
 
+function MapUpdater({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, map.getZoom());
+  }, [center, map]);
+  return null;
+}
+
 export const LiveTrackingPage: React.FC = () => {
   const { trackingId } = useParams<{ trackingId: string }>();
   const navigate = useNavigate();
+  const { location, isConnected, eta } = useLiveTracking(trackingId);
 
   const { data: shipment, isLoading } = useQuery({
     queryKey: ['shipment', 'tracking', trackingId],
@@ -31,13 +41,25 @@ export const LiveTrackingPage: React.FC = () => {
     enabled: !!trackingId,
   });
 
+  // Keep map instances stable to avoid flashing
+  const [mapCenter, setMapCenter] = useState<[number, number]>([39.7392, -104.9903]); // Denver default
+
+  useEffect(() => {
+    if (location) {
+      setMapCenter([location.lat, location.lng]);
+    } else if (shipment?.currentLat && shipment?.currentLng) {
+      setMapCenter([shipment.currentLat, shipment.currentLng]);
+    }
+  }, [location, shipment]);
+
   if (isLoading) return <div className="h-screen bg-gray-950 flex items-center justify-center text-white">Loading map...</div>;
   if (!shipment) return <div className="h-screen bg-gray-950 flex items-center justify-center text-red-500">Shipment not found</div>;
 
-  // Mock coordinates for demo
-  const origin: [number, number] = [40.7128, -74.0060]; // NY
-  const destination: [number, number] = [40.7580, -73.9855]; // Times Square
-  const currentLoc: [number, number] = [shipment.currentLat || 40.7300, shipment.currentLng || -73.9950];
+  // Use branch as origin, and receiver address as destination for demo
+  const origin: [number, number] = [shipment.branch?.lat || 39.7392, shipment.branch?.lng || -104.9903]; 
+  const destination: [number, number] = [39.7400, -104.9800]; // Mock destination
+  
+  const currentLoc: [number, number] = location ? [location.lat, location.lng] : mapCenter;
 
   return (
     <div className="relative h-screen w-full bg-gray-950 overflow-hidden flex flex-col">
@@ -56,18 +78,19 @@ export const LiveTrackingPage: React.FC = () => {
 
       {/* Connection Indicator */}
       <div className="absolute top-4 right-4 z-50 bg-gray-900/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-gray-800 flex items-center space-x-2">
-        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-        <span className="text-xs font-medium text-white">Live</span>
+        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+        <span className="text-xs font-medium text-white">{isConnected ? 'Live' : 'Connecting...'}</span>
       </div>
 
       {/* Map */}
       <div className="flex-1 w-full z-0">
         <MapContainer 
-          center={currentLoc} 
+          center={mapCenter} 
           zoom={13} 
           zoomControl={false}
           className="h-full w-full"
         >
+          <MapUpdater center={currentLoc} />
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
