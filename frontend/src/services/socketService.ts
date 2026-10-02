@@ -49,7 +49,7 @@ class SocketService {
     return this.connected ? 'connected' : 'disconnected';
   }
 
-  private emit(event: WSEvent<any>) {
+  emit(event: WSEvent<any>) {
     const topicHandlers = this.handlers.get(event.topic);
     if (topicHandlers) {
       topicHandlers.forEach(handler => handler(event));
@@ -86,7 +86,7 @@ class SocketService {
             
             this.emit({
               type: 'location.update',
-              topic: `shipment.\${s.trackingId}.location`,
+              topic: `shipment.${s.trackingId}.location`,
               payload: locUpdate,
               timestamp: new Date().toISOString()
             });
@@ -108,20 +108,20 @@ class SocketService {
           };
           this.emit({
             type: 'status.update',
-            topic: `shipment.\${inTransit.trackingId}.status`,
+            topic: `shipment.${inTransit.trackingId}.status`,
             payload: update,
             timestamp: new Date().toISOString()
           });
           
           this.emit({
             type: 'notification',
-            topic: `user.\${inTransit.senderId}.notifications`,
+            topic: `user.${inTransit.senderId}.notifications`,
             payload: {
-              id: `notif-\${Date.now()}`,
+              id: `notif-${Date.now()}`,
               userId: inTransit.senderId,
               type: 'STATUS_UPDATE',
               title: 'Status Updated',
-              message: `Shipment \${inTransit.trackingId} is now AT_BRANCH`,
+              message: `Shipment ${inTransit.trackingId} is now AT_BRANCH`,
               shipmentId: inTransit.id,
               trackingId: inTransit.trackingId,
               isRead: false,

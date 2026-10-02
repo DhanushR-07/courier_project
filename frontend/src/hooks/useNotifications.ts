@@ -21,7 +21,7 @@ export function useNotifications(userId?: string) {
       socketService.connect('dummy-token');
     }
 
-    const unsubscribe = socketService.subscribe(`user.\${userId}.notifications`, (event) => {
+    const unsubscribe = socketService.subscribe(`user.${userId}.notifications`, (event) => {
       const newNotif = event.payload as Notification;
       setNotifications(prev => [newNotif, ...prev]);
       setUnreadCount(prev => prev + 1);

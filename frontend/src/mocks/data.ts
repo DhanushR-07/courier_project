@@ -255,7 +255,7 @@ export const mockShipments: Shipment[] = [
   },
   // Add 10 more shipments with similar structure
   ...Array.from({ length: 10 }).map((_, i) => {
-    const id = `ship-\${i + 6}`;
+    const id = `ship-${i + 6}`;
     const isDelivered = i % 3 === 0;
     const isOut = i % 4 === 0;
     const partnerId = i % 2 === 0 ? 'user-4' : 'user-8';
@@ -264,20 +264,20 @@ export const mockShipments: Shipment[] = [
     
     return {
       id,
-      trackingId: `V789456AR\${128 + i}`,
-      packageName: `Generic Package \${i + 1}`,
+      trackingId: `V789456AR${128 + i}`,
+      packageName: `Generic Package ${i + 1}`,
       senderId: 'user-1',
       senderName: 'Daniel Cooper',
       senderAddress: '100 Sender St, Denver',
       senderPhone: '+1-303-555-0101',
-      receiverId: `rec-\${i + 6}`,
-      receiverName: `Receiver \${i + 6}`,
-      receiverAddress: `\${800 + i * 10} Receiver Rd, CO`,
-      receiverPhone: `+1-555-02\${10 + i}`,
+      receiverId: `rec-${i + 6}`,
+      receiverName: `Receiver ${i + 6}`,
+      receiverAddress: `${800 + i * 10} Receiver Rd, CO`,
+      receiverPhone: `+1-555-02${10 + i}`,
       status: (isDelivered ? 'DELIVERED' : (isOut ? 'OUT_FOR_DELIVERY' : 'IN_TRANSIT')) as ShipmentStatus,
       timeline: generateTimeline(['BOOKED', 'PICKED_UP', 'IN_TRANSIT'], new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)),
-      branchId: `branch-\${bId}`,
-      branchName: `Branch \${bId}`,
+      branchId: `branch-${bId}`,
+      branchName: `Branch ${bId}`,
       assignedPartnerId: partnerId,
       assignedPartnerName: partnerName,
       bookingDate: new Date(Date.now() - (i + 1) * 24 * 60 * 60 * 1000).toISOString(),
@@ -297,11 +297,11 @@ export const mockNotifications: Notification[] = [
   { id: 'notif-3', userId: 'user-4', type: 'ASSIGNMENT', title: 'New Delivery Assigned', message: 'You have been assigned to deliver V789456AR123.', shipmentId: 'ship-1', trackingId: 'V789456AR123', isRead: true, createdAt: new Date(Date.now() - 86400000).toISOString() },
   { id: 'notif-4', userId: 'user-1', type: 'DELIVERY_ATTEMPT', title: 'Delivery Failed', message: 'We attempted to deliver V789456AR127 but you were unavailable.', shipmentId: 'ship-5', trackingId: 'V789456AR127', isRead: true, createdAt: new Date(Date.now() - 100000).toISOString() },
   ...Array.from({ length: 6 }).map((_, i) => ({
-    id: `notif-\${i + 5}`,
+    id: `notif-${i + 5}`,
     userId: 'user-1',
     type: 'SYSTEM' as const,
     title: 'System Alert',
-    message: `Maintenance scheduled for \${new Date().toLocaleDateString()}`,
+    message: `Maintenance scheduled for ${new Date().toLocaleDateString()}`,
     isRead: i % 2 === 0,
     createdAt: new Date(Date.now() - i * 3600000).toISOString(),
   }))
@@ -313,12 +313,12 @@ export const mockAuditLogs: AuditLog[] = [
   { id: 'audit-3', userId: 'user-2', userName: 'Sarah Chen', action: 'USER_CREATED', resource: 'USER', resourceId: 'user-5', details: 'Created customer Emily Davis', timestamp: new Date().toISOString() },
   { id: 'audit-4', userId: 'user-2', userName: 'Sarah Chen', action: 'BRANCH_UPDATED', resource: 'BRANCH', resourceId: 'branch-1', details: 'Updated Downtown Hub details', timestamp: new Date().toISOString() },
   ...Array.from({ length: 4 }).map((_, i) => ({
-    id: `audit-\${i + 5}`,
+    id: `audit-${i + 5}`,
     userId: 'user-2',
     userName: 'Sarah Chen',
     action: 'STATUS_UPDATE',
     resource: 'SHIPMENT',
-    resourceId: `ship-\${i + 6}`,
+    resourceId: `ship-${i + 6}`,
     details: 'Status automatically updated',
     timestamp: new Date(Date.now() - i * 3600000).toISOString(),
   }))

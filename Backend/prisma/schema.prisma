@@ -1,0 +1,122 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./courier.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String?
+  role      String   // CUSTOMER, ADMIN, BRANCH_STAFF, DELIVERY_PARTNER
+  avatar    String?
+  branchId  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  branch    Branch?  @relation(fields: [branchId], references: [id])
+  
+  sentShipments      Shipment[] @relation("Sender")
+  assignedDeliveries Shipment[] @relation("Partner")
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+}
+
+model Branch {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  address   String
+  city      String
+  state     String
+  lat       Float
+  lng       Float
+  managerId String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  shipments Shipment[]
+}
+
+model Shipment {
+  id                   String   @id @default(uuid())
+  trackingId           String   @unique
+  packageName          String
+  senderId             String
+  receiverName         String
+  receiverAddress      String
+  receiverPhone        String
+  status               String   // BOOKED, PICKED_UP, IN_TRANSIT, AT_BRANCH, OUT_FOR_DELIVERY, DELIVERED, FAILED_ATTEMPT
+  branchId             String?
+  assignedPartnerId    String?
+  bookingDate          DateTime @default(now())
+  expectedDeliveryDate DateTime
+  deliveryOtp          String?
+  otpAttempts          Int      @default(0)
+  estimatedRevenue     Float    @default(0)
+  currentLat           Float?
+  currentLng           Float?
+
+  sender          User    @relation("Sender", fields: [senderId], references: [id])
+  branch          Branch? @relation(fields: [branchId], references: [id])
+  assignedPartner User?   @relation("Partner", fields: [assignedPartnerId], references: [id])
+  
+  timeline        ShipmentTimeline[]
+  payment         Payment?
+}
+
+model ShipmentTimeline {
+  id         String   @id @default(uuid())
+  shipmentId String
+  status     String
+  location   String?
+  timestamp  DateTime @default(now())
+
+  shipment   Shipment @relation(fields: [shipmentId], references: [id])
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  shipmentId    String   @unique
+  amount        Float
+  status        String   // PENDING, COMPLETED, FAILED
+  paymentMethod String?  // CARD, UPI, CASH
+  transactionId String?
+  createdAt     DateTime @default(now())
+  
+  // You would typically link this back to Shipment, but since Shipment already exists
+  // we can just use the shipmentId to join manually or define a relation:
+  shipment      Shipment @relation(fields: [shipmentId], references: [id])
+}
+
+model Notification {
+  id         String   @id @default(uuid())
+  userId     String
+  type       String
+  title      String
+  message    String
+  isRead     Boolean  @default(false)
+  trackingId String?
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  resource  String
+  details   String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}

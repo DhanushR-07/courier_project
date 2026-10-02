@@ -18,15 +18,15 @@ export function useLiveTracking(trackingId?: string) {
       setIsConnected(true);
     }
 
-    const unsubLocation = socketService.subscribe(`shipment.\${trackingId}.location`, (event) => {
+    const unsubLocation = socketService.subscribe(`shipment.${trackingId}.location`, (event) => {
       const loc = event.payload as LocationUpdate;
       setLocation(loc);
       // Rough ETA simulation based on random logic
       const randomMins = Math.floor(Math.random() * 30) + 10;
-      setEta(`\${randomMins} mins`);
+      setEta(`${randomMins} mins`);
     });
 
-    const unsubStatus = socketService.subscribe(`shipment.\${trackingId}.status`, (event) => {
+    const unsubStatus = socketService.subscribe(`shipment.${trackingId}.status`, (event) => {
       const stat = event.payload as StatusUpdate;
       setStatus(stat.newStatus);
     });
