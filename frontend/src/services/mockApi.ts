@@ -63,6 +63,38 @@ export const shipmentApi = {
     if (!s) throw new Error('Not found');
     s.status = status;
     s.timeline.push({ status, timestamp: new Date().toISOString(), note });
+    
+    // Automatically generate OTP and notify when OUT_FOR_DELIVERY
+    if (status === 'OUT_FOR_DELIVERY' && s.customerId) {
+      // Import socketService dynamically to avoid circular dependency loops if any
+      import('./socketService').then(({ socketService }) => {
+        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        s.deliveryOtp = generatedOtp;
+        s.otpAttempts = 0;
+        
+        const newNotif = {
+          id: `notif-${Date.now()}`,
+          userId: s.customerId,
+          type: 'OTP',
+          title: 'Delivery OTP Generated',
+          message: `Your package ${s.trackingId} is out for delivery. Your OTP is ${generatedOtp}. Do not share this with anyone except the delivery partner.`,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          shipmentId: s.id,
+          trackingId: s.trackingId,
+        } as Notification;
+        
+        mockNotifications.unshift(newNotif);
+        
+        socketService.emit({
+          type: 'notification',
+          topic: `user.${s.customerId}.notifications`,
+          payload: newNotif,
+          timestamp: new Date().toISOString()
+        });
+      });
+    }
+
     return s;
   },
   assignPartner: async (id: string, partnerId: string) => {
@@ -152,6 +184,42 @@ export const notificationApi = {
 };
 
 export const deliveryApi = {
+  generateAndSendOtp: async (shipmentId: string) => {
+    await delay(300);
+    const s = mockShipments.find(s => s.id === shipmentId);
+    if (!s) throw new Error('Not found');
+    
+    // Generate actual random OTP
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    s.deliveryOtp = generatedOtp;
+    s.otpAttempts = 0;
+    
+    if (s.customerId) {
+      import('./socketService').then(({ socketService }) => {
+        const newNotif = {
+          id: `notif-${Date.now()}`,
+          userId: s.customerId!,
+          type: 'OTP',
+          title: 'Your Delivery OTP',
+          message: `The delivery partner is at your location! Your OTP is ${generatedOtp}.`,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          shipmentId: s.id,
+          trackingId: s.trackingId,
+        } as Notification;
+        
+        mockNotifications.unshift(newNotif);
+        
+        socketService.emit({
+          type: 'notification',
+          topic: `user.${s.customerId}.notifications`,
+          payload: newNotif,
+          timestamp: new Date().toISOString()
+        });
+      });
+    }
+    return generatedOtp;
+  },
   verifyOtp: async (shipmentId: string, otp: string): Promise<boolean> => {
     await delay(500);
     const s = mockShipments.find(s => s.id === shipmentId);
@@ -210,6 +278,7 @@ export const mockApi = {
   getNotifications: notificationApi.getForUser,
   markNotificationRead: notificationApi.markAsRead,
   markAllNotificationsRead: notificationApi.markAllRead,
+  generateAndSendOtp: deliveryApi.generateAndSendOtp,
   verifyOtp: deliveryApi.verifyOtp,
   updateDelivery: deliveryApi.updateDelivery,
   getDashboardStats: dashboardApi.getStats,

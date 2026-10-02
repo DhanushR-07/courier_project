@@ -45,19 +45,30 @@ export default function DeliveryStatusUpdate() {
     }
   });
 
-  const handleSelectDelivered = () => {
+  const handleSelectDelivered = async () => {
     setSelectedStatus('DELIVERED');
-    // Simulate automatic sending of OTP to the customer
-    toast.success('OTP sent automatically to the customer!', {
-      icon: '📲',
-      duration: 4000,
-    });
+    try {
+      await mockApi.generateAndSendOtp(id!);
+      queryClient.invalidateQueries({ queryKey: ['shipment', id] });
+      toast.success('OTP sent automatically to the customer!', {
+        icon: '📲',
+        duration: 4000,
+      });
+    } catch (e) {
+      toast.error('Failed to generate OTP');
+    }
   };
 
-  const handleResendOtp = () => {
-    toast.success('OTP resent to the customer!', {
-      icon: '🔄',
-    });
+  const handleResendOtp = async () => {
+    try {
+      await mockApi.generateAndSendOtp(id!);
+      queryClient.invalidateQueries({ queryKey: ['shipment', id] });
+      toast.success('OTP resent to the customer!', {
+        icon: '🔄',
+      });
+    } catch (e) {
+      toast.error('Failed to resend OTP');
+    }
   };
 
   if (isLoading) {
