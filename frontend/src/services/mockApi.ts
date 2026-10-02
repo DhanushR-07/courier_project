@@ -104,6 +104,31 @@ export const shipmentApi = {
     if (!s || !u) throw new Error('Not found');
     s.assignedPartnerId = partnerId;
     s.assignedPartnerName = u.name;
+    
+    // Automatically notify the assigned delivery partner
+    import('./socketService').then(({ socketService }) => {
+      const newNotif = {
+        id: `notif-${Date.now()}`,
+        userId: partnerId,
+        type: 'SYSTEM',
+        title: 'New Delivery Assigned',
+        message: `You have been assigned to deliver package ${s.trackingId} (${s.packageName}).`,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        shipmentId: s.id,
+        trackingId: s.trackingId,
+      } as Notification;
+      
+      mockNotifications.unshift(newNotif);
+      
+      socketService.emit({
+        type: 'notification',
+        topic: `user.${partnerId}.notifications`,
+        payload: newNotif,
+        timestamp: new Date().toISOString()
+      });
+    });
+
     return s;
   },
   create: async (shipmentData: any) => {
