@@ -33,11 +33,18 @@ app.get('/api/shipments', async (req, res) => {
   if (partnerId) where.assignedPartnerId = partnerId;
   if (customerId) where.senderId = customerId;
   
-  const shipments = await prisma.shipment.findMany({ where, include: { assignedPartner: true } });
+  const shipments = await prisma.shipment.findMany({ 
+    where, 
+    include: { assignedPartner: true, timeline: true, branch: true, sender: true } 
+  });
   // Map Prisma model to match frontend types where necessary
   res.json(shipments.map(s => ({
     ...s,
-    assignedPartnerName: s.assignedPartner?.name
+    assignedPartnerName: s.assignedPartner?.name,
+    branchName: s.branch?.name,
+    senderName: s.sender?.name,
+    senderPhone: s.sender?.phone,
+    senderAddress: '123 Sender Default Address' // since user doesn't have address
   })));
 });
 
@@ -67,10 +74,17 @@ app.post('/api/shipments', async (req, res) => {
 app.get('/api/shipments/tracking/:trackingId', async (req, res) => {
   const shipment = await prisma.shipment.findUnique({
     where: { trackingId: req.params.trackingId },
-    include: { timeline: true, assignedPartner: true }
+    include: { timeline: true, assignedPartner: true, branch: true, sender: true }
   });
   if (!shipment) return res.status(404).json({ message: 'Not found' });
-  res.json({ ...shipment, assignedPartnerName: shipment.assignedPartner?.name });
+  res.json({ 
+    ...shipment, 
+    assignedPartnerName: shipment.assignedPartner?.name,
+    branchName: shipment.branch?.name,
+    senderName: shipment.sender?.name,
+    senderPhone: shipment.sender?.phone,
+    senderAddress: '123 Sender Default Address'
+  });
 });
 
 app.put('/api/shipments/:id/status', async (req, res) => {
